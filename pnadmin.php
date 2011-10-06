@@ -251,7 +251,9 @@ function IWstats_admin_updateconfig($args) {
     }
 
     // Confirm authorisation code
-    checkCsrfToken();
+    if (!SecurityUtil::confirmAuthKey()) {
+        return LogUtil::registerAuthidError(pnModURL('IWstats', 'admin', 'main'));
+    }
 
     $modulesIdArray = array();
     foreach ($moduleId as $m) {
@@ -275,6 +277,7 @@ function IWstats_admin_updateconfig($args) {
 function IWstats_admin_deleteIp($args) {
     $ip = FormUtil::getPassedValue('ip', isset($args['ip']) ? $args['ip'] : 1, 'GETPOST');
     $confirm = FormUtil::getPassedValue('confirm', isset($args['confirm']) ? $args['confirm'] : 0, 'POST');
+
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
         throw new Zikula_Exception_Forbidden();
@@ -284,19 +287,22 @@ function IWstats_admin_deleteIp($args) {
         // Assign all the module variables to the template
         $pnRender = pnRender::getInstance('IWstats', false);
         $pnRender->assign('ip', $ip);
-        $pnRender->fetch('IWstats_admin_deleteip.htm');
+        return $pnRender->fetch('IWstats_admin_deleteip.htm');
     }
 
-    checkCsrfToken();
+    // Confirm authorisation code
+    if (!SecurityUtil::confirmAuthKey()) {
+        return LogUtil::registerAuthidError(pnModURL('IWstats', 'admin', 'main'));
+    }
 
     if (!pnModAPIFunc('IWstats', 'admin', 'deleteIp', array('ip' => $ip))) {
         LogUtil::registerError(__f('Error deleting the ip \'%s\'', array($ip)));
-        return System::redirect(ModUtil::url('IWstats', 'admin', 'view'));
+        return pnredirect(pnModurl('IWstats', 'admin', 'view'));
     }
 
     // Success
     LogUtil::registerStatus(__f('Ip \'%s\' deleted', array($ip)));
-    return System::redirect(ModUtil::url('IWstats', 'admin', 'view'));
+    return pnredirect(pnModurl('IWstats', 'admin', 'view'));
 }
 
 function IWstats_admin_viewStats($args) {
@@ -345,7 +351,7 @@ function IWstats_admin_viewStats($args) {
     if ($fromDate != null) {
         $fromDate = mktime(0, 0, 0, substr($fromDate, 3, 2), substr($fromDate, 0, 2), substr($fromDate, 6, 4));
         $fromDate = date('Y-m-d 00:00:00', $fromDate);
-        //$fromDate = DateUtil::makeTimestamp($fromDate);
+        $fromDate = DateUtil::makeTimestamp($fromDate);
         $fromDate = date('d-m-Y', $fromDate);
     } else {
         $fromDate = date('d-m-Y', $time - $lastDays * 24 * 60 * 60);
@@ -354,7 +360,7 @@ function IWstats_admin_viewStats($args) {
     if ($toDate != null) {
         $toDate = mktime(0, 0, 0, substr($toDate, 3, 2), substr($toDate, 0, 2), substr($toDate, 6, 4));
         $toDate = date('Y-m-d 00:00:00', $toDate);
-        //$toDate = DateUtil::makeTimestamp($toDate);
+        $toDate = DateUtil::makeTimestamp($toDate);
         $toDate = date('d-m-Y', $toDate);
     } else {
         $toDate = date('d-m-Y', $time);
