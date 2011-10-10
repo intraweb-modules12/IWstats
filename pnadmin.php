@@ -45,7 +45,7 @@ function IWstats_admin_view($args) {
 
     if ($uname != null && $uname != '') {
         // get user id from uname
-        $uid = UserUtil::getIdFromName($uname);
+        $uid = pnUserGetIDFromName($uname);
         if (!$uid) {
             LogUtil::registerError(__f('User \'%s\' not found', array($uname)));
             $uname = '';
@@ -153,10 +153,14 @@ function IWstats_admin_view($args) {
     // get all modules
     $modules = pnModAPIFunc('modules', 'admin', 'list');
 
+    $skippedModulesArray = unserialize(pnModGetVar('IWstats', 'modulesSkipped'));
+
     foreach ($modules as $module) {
-        $modulesNames[$module['id']] = $module['name'];
-        $modulesArray[] = array('id' => $module['id'],
-            'name' => $module['name']);
+        if (!in_array($module['id'], $skippedModulesArray)) {
+            $modulesNames[$module['id']] = $module['name'];
+            $modulesArray[] = array('id' => $module['id'],
+                'name' => $module['name']);
+        }
     }
 
     // Create output object
@@ -230,7 +234,7 @@ function IWstats_admin_modifyconfig() {
 
     // Assign all the module variables to the template
     $pnRender = pnRender::getInstance('IWstats', false);
-    $pnRender->assign('skipedIps', pnModgetvar('IWstats', 'skipedIps'));
+    $pnRender->assign('skippedIps', pnModgetvar('IWstats', 'skippedIps'));
     $pnRender->assign('modules', $modules);
     return $pnRender->fetch('IWstats_admin_modifyconfig.htm');
 }
@@ -243,7 +247,7 @@ function IWstats_admin_modifyconfig() {
  * @param        itemsperpage   number of items per page
  */
 function IWstats_admin_updateconfig($args) {
-    $skipedIps = FormUtil::getPassedValue('skipedIps', isset($args['skipedIps']) ? $args['skipedIps'] : 1, 'POST');
+    $skippedIps = FormUtil::getPassedValue('skippedIps', isset($args['skippedIps']) ? $args['skippedIps'] : 1, 'POST');
     $moduleId = FormUtil::getPassedValue('moduleId', isset($args['moduleId']) ? $args['moduleId'] : array(), 'POST');
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
@@ -260,8 +264,10 @@ function IWstats_admin_updateconfig($args) {
         $modulesIdArray[] = $m;
     }
 
-    pnModSetVar('IWstats', 'skipedIps', $skipedIps);
+    pnModSetVar('IWstats', 'skippedIps', $skippedIps);
     pnModSetVar('IWstats', 'modulesSkipped', serialize($modulesIdArray));
+
+    pnModAPIFunc('IWstats', 'admin', 'skipModules', array('moduleId' => $moduleId));
 
     $pnRender = pnRender::getInstance('IWstats', false);
 
@@ -385,51 +391,6 @@ function IWstats_admin_viewStats($args) {
         $usersIdsCounter[$record['uid']] = (isset($usersIdsCounter[$record['uid']])) ? $usersIdsCounter[$record['uid']] + 1 : 1;
         $usersList .= $record['uid'] . '$$';
     }
-    /*
-      foreach ($records as $record) {
-      if ($record['params'] != '') {
-      $valueArray = array();
-      $paramsArray = explode('&', $record['params']);
-      foreach ($paramsArray as $param) {
-      $value = explode('=', $param);
-      $valueArray[$value[0]] = $value[1];
-      }
-      if ($record['moduleid'] > 0) {
-      $records[$record['statsid']]['func'] = (isset($valueArray['func'])) ? $valueArray['func'] : 'main';
-      $records[$record['statsid']]['type'] = (isset($valueArray['type'])) ? $valueArray['type'] : 'user';
-      } else {
-      $records[$record['statsid']]['func'] = '';
-      $records[$record['statsid']]['type'] = '';
-      }
-
-      $params = '';
-      foreach ($valueArray as $key => $v) {
-      if ($key != 'module' && $key != 'func' && $key != 'type') {
-      $params .= $key . '=' . $v . '&';
-      }
-      }
-      } else {
-      $params = '';
-      if ($record['moduleid'] > 0) {
-      $records[$record['statsid']]['func'] = 'main';
-      $records[$record['statsid']]['type'] = 'user';
-      } else {
-      $records[$record['statsid']]['func'] = '';
-      $records[$record['statsid']]['type'] = '';
-      }
-      }
-
-      $params = str_replace('%3F', '?', $params);
-      $params = str_replace('%3D', '=', $params);
-      $params = str_replace('%2F', '/', $params);
-      $params = str_replace('%26', '&', $params);
-      $params = str_replace('%7E', '~', $params);
-
-      $records[$record['statsid']]['params'] = substr($params, 0, -1);
-
-      $usersList .= $record['uid'] . '$$';
-      }
-     */
 
     $sv = pnModFunc('iw_main', 'user', 'genSecurityValue');
     $users = pnModFunc('iw_main', 'user', 'getAllUsersInfo', array('info' => 'ncc',
@@ -439,10 +400,14 @@ function IWstats_admin_viewStats($args) {
     // get all modules
     $modules = pnModAPIFunc('modules', 'admin', 'list');
 
+    $skippedModulesArray = unserialize(pnModGetVar('IWstats', 'modulesSkipped'));
+
     foreach ($modules as $module) {
-        $modulesNames[$module['id']] = $module['name'];
-        $modulesArray[] = array('id' => $module['id'],
-            'name' => $module['name']);
+        if (!in_array($module['id'], $skippedModulesArray)) {
+            $modulesNames[$module['id']] = $module['name'];
+            $modulesArray[] = array('id' => $module['id'],
+                'name' => $module['name']);
+        }
     }
 
     $pnRender = pnRender::getInstance('IWstats', false);
@@ -462,3 +427,7 @@ function IWstats_admin_viewStats($args) {
     return $pnRender->fetch('IWstats_admin_stats.htm');
 }
 
+function IWstats_admin_resume() {
+    $daysAgo = 120;
+    pnModAPIFunc('IWstats', 'admin', 'resume', array('daysAgo' => $daysAgo));
+}

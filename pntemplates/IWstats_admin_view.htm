@@ -76,7 +76,7 @@
                 </td>
                 <td>
                     <!--[if $record.uid gt 0]-->
-                    <a href="<!--[pnmodurl modname='IWstats' type='admin' func='view' uname=$users[$record.uid].l]-->" alt="">
+                    <a href="<!--[pnmodurl modname='IWstats' type='admin' func='view' uname=$usersMails[$record.uid]]-->" alt="">
                         <!--[$users[$record.uid]]--> (<!--[$usersMails[$record.uid]]-->)
                     </a>
                     <!--[else]-->

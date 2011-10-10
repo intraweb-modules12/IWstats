@@ -1,0 +1,10 @@
+.modulesList {
+    float: left;
+    width: 170px;
+}
+
+.usersListForStats {
+    float: left;
+    width: 170px;
+    margin-right: 20px;
+}

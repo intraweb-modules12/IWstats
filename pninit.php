@@ -57,7 +57,11 @@ function IWstats_init() {
  * @todo recode using DBUtil
  */
 function IWstats_upgrade($oldversion) {
-
+    switch ($oldversion) {
+        case '0.1':
+            if (!DBUtil::createTable('IWstats_resume'))
+                return false;
+    }
     // Update successful
     return true;
 }
