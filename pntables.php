@@ -27,8 +27,8 @@ function IWstats_pntables() {
         'skippedModule' => "I1 NOTNULL DEFAULT '0'",
     );
 
-    $table['IWstats_resume'] = DBUtil::getLimitedTablename('IWstats_resume');
-    $table['IWstats_resume_column'] = array('resumeid' => 'iw_resumeid',
+    $table['IWstats_summary'] = DBUtil::getLimitedTablename('IWstats_summary');
+    $table['IWstats_summary_column'] = array('summaryid' => 'iw_summaryid',
         'datetime' => 'iw_datetime',
         'nrecords' => 'iw_nrecords',
         'registered' => 'iw_registered',
@@ -38,7 +38,7 @@ function IWstats_pntables() {
         'isadmin' => 'iw_isadmin',
         'users' => 'users',
     );
-    $table['IWstats_resume_column_def'] = array('resumeid' => "I NOTNULL AUTO PRIMARY",
+    $table['IWstats_summary_column_def'] = array('summaryid' => "I NOTNULL AUTO PRIMARY",
         'datetime' => "T DEFDATETIME NOTNULL DEFAULT '1970-01-01 00:00:00'",
         'nrecords' => "I NOTNULL DEFAULT '0'",
         'registered' => "I NOTNULL DEFAULT '0'",

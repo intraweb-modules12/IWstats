@@ -59,7 +59,7 @@ function IWstats_init() {
 function IWstats_upgrade($oldversion) {
     switch ($oldversion) {
         case '0.1':
-            if (!DBUtil::createTable('IWstats_resume'))
+            if (!DBUtil::createTable('IWstats_summary'))
                 return false;
     }
     // Update successful

@@ -427,7 +427,7 @@ function IWstats_admin_viewStats($args) {
     return $pnRender->fetch('IWstats_admin_stats.htm');
 }
 
-function IWstats_admin_resume() {
+function IWstats_admin_summary() {
     $daysAgo = 120;
-    pnModAPIFunc('IWstats', 'admin', 'resume', array('daysAgo' => $daysAgo));
+    pnModAPIFunc('IWstats', 'admin', 'summary', array('daysAgo' => $daysAgo));
 }

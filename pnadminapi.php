@@ -61,7 +61,7 @@ function IWstats_adminapi_skipModules($args) {
     return true;
 }
 
-function IWstats_adminapi_resume($args) {
+function IWstats_adminapi_summary($args) {
     $time = time();
     $fromDate = date('d-m-Y', $time - 10000 * 24 * 60 * 60);
     $toDate = date('d-m-Y', $time - $args['daysAgo'] * 24 * 60 * 60);
@@ -130,7 +130,7 @@ function IWstats_adminapi_resume($args) {
             'users' => $users,
         );
 
-        if (!DBUtil::insertObject($item, 'IWstats_resume')) {
+        if (!DBUtil::insertObject($item, 'IWstats_summary')) {
             return LogUtil::registerError(__('Error! Creation attempt failed.', $dom));
         }
     }
