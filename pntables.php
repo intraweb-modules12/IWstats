@@ -36,7 +36,8 @@ function IWstats_pntables() {
         'skipped' => 'iw_skipped',
         'skippedModule' => 'iw_skippedModule',
         'isadmin' => 'iw_isadmin',
-        'users' => 'users',
+        'users' => 'iw_users',
+        'nips' => 'iw_nips',
     );
     $table['IWstats_summary_column_def'] = array('summaryid' => "I NOTNULL AUTO PRIMARY",
         'datetime' => "T DEFDATETIME NOTNULL DEFAULT '1970-01-01 00:00:00'",
@@ -47,6 +48,7 @@ function IWstats_pntables() {
         'skippedModule' => "I NOTNULL DEFAULT '0'",
         'isadmin' => "I NOTNULL DEFAULT '0'",
         'users' => "X NOTNULL",
+        'nips' => "I NOTNULL DEFAULT '0'",
     );
 
 

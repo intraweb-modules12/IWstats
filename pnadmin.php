@@ -3,7 +3,7 @@
 function IWstats_admin_main() {
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
-        throw new Zikula_Exception_Forbidden();
+        return LogUtil::registerPermissionError();
     }
 
     return pnredirect(pnModurl('IWstats', 'admin', 'view'));
@@ -36,7 +36,7 @@ function IWstats_admin_view($args) {
     }
 
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
-        throw new Zikula_Exception_Forbidden();
+        return LogUtil::registerPermissionError();
     }
 
     $uid = 0;
@@ -187,7 +187,7 @@ function IWstats_admin_reset($args) {
 
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
-        throw new Zikula_Exception_Forbidden();
+        return LogUtil::registerPermissionError();
     }
 
     // Check for confirmation.
@@ -219,7 +219,7 @@ function IWstats_admin_reset($args) {
 function IWstats_admin_modifyconfig() {
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
-        throw new Zikula_Exception_Forbidden();
+        return LogUtil::registerPermissionError();
     }
 
     // get all modules
@@ -251,7 +251,7 @@ function IWstats_admin_updateconfig($args) {
     $moduleId = FormUtil::getPassedValue('moduleId', isset($args['moduleId']) ? $args['moduleId'] : array(), 'POST');
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
-        throw new Zikula_Exception_Forbidden();
+        return LogUtil::registerPermissionError();
     }
 
     // Confirm authorisation code
@@ -286,7 +286,7 @@ function IWstats_admin_deleteIp($args) {
 
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
-        throw new Zikula_Exception_Forbidden();
+        return LogUtil::registerPermissionError();
     }
 
     if (!$confirm) {
@@ -336,7 +336,7 @@ function IWstats_admin_viewStats($args) {
     }
 
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
-        throw new Zikula_Exception_Forbidden();
+        return LogUtil::registerPermissionError();
     }
 
     $uid = 0;
@@ -345,7 +345,7 @@ function IWstats_admin_viewStats($args) {
 
     if ($uname != null && $uname != '') {
         // get user id from uname
-        $uid = UserUtil::getIdFromName($uname);
+        $uid = pnUserGetIDFromName($uname);
         if (!$uid) {
             LogUtil::registerError(__f('User \'%s\' not found', array($uname)));
             $uname = '';
@@ -373,24 +373,26 @@ function IWstats_admin_viewStats($args) {
     }
 
     // get last records
-    $records = pnModAPIFunc('IWstats', 'user', 'getAllRecords', array('rpp' => -1,
+    $records = pnModAPIFunc('IWstats', 'user', 'getAllSummary', array('rpp' => -1,
         'init' => -1,
-        'moduleId' => $moduleId,
-        'uid' => $uid,
-        'ip' => $ip,
-        'registered' => $registered,
         'fromDate' => $fromDate,
         'toDate' => $toDate,
+        'uid' => $uid,
             ));
 
-    $usersList = '';
-    $usersIdsCounter = array();
-    $usersIpCounter = array();
+    $usersListArray = array();
     foreach ($records as $record) {
-        $usersIpCounter[$record['ip']] = (isset($usersIpCounter[$record['ip']])) ? $usersIpCounter[$record['ip']] + 1 : 1;
-        $usersIdsCounter[$record['uid']] = (isset($usersIdsCounter[$record['uid']])) ? $usersIdsCounter[$record['uid']] + 1 : 1;
-        $usersList .= $record['uid'] . '$$';
+        $usersIpCounter = $usersIpCounter + $record['nips'];
+        $users = explode('$$', substr($record['users'], 1, -1)); // substr to remove $ in the begining and the end of the string
+        foreach ($users as $user) {
+            $oneUser = explode('|', $user);
+            if (!in_array($oneUser[0], $usersListArray)) {
+                $usersListArray[] = $oneUser[0];
+            }
+        }
     }
+
+    $usersList = implode('$$', $usersListArray);
 
     $sv = pnModFunc('iw_main', 'user', 'genSecurityValue');
     $users = pnModFunc('iw_main', 'user', 'getAllUsersInfo', array('info' => 'ncc',
@@ -428,6 +430,16 @@ function IWstats_admin_viewStats($args) {
 }
 
 function IWstats_admin_summary() {
-    $daysAgo = 120;
-    pnModAPIFunc('IWstats', 'admin', 'summary', array('daysAgo' => $daysAgo));
+    if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
+        return LogUtil::registerPermissionError();
+    }
+    $days = 15;
+    $deleteFromDays = 170;
+    pnModAPIFunc('IWstats', 'admin', 'summary', array('days' => $days,
+        'deleteFromDays' => $deleteFromDays,
+    ));
+
+    // Success
+    LogUtil::registerStatus(__('Summary reported'));
+    return pnredirect(pnModurl('IWstats', 'admin', 'view'));
 }

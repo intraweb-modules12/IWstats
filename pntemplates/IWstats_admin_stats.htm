@@ -56,7 +56,7 @@
     <fieldset>
         <legend><!--[gt text="Users"]--></legend>
         <div>
-            <!--[gt text="Number of different Ip:"]--> <!--[$usersIpCounter|@count]-->
+            <!--[gt text="Number of different Ip:"]--> <!--[$usersIpCounter]-->
         </div>
         <div>
             <!--[gt text="Number of registered users:"]--> <!--[$users|@count]-->
@@ -75,6 +75,7 @@
         <!--[/if]-->
     </fieldset>
 </div>
+
 <script type="text/javascript">
     var from = Calendar.setup({
         onSelect       :    function(from) {from.hide()},

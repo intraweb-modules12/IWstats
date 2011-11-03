@@ -62,9 +62,31 @@ function IWstats_adminapi_skipModules($args) {
 }
 
 function IWstats_adminapi_summary($args) {
-    $time = time();
-    $fromDate = date('d-m-Y', $time - 10000 * 24 * 60 * 60);
-    $toDate = date('d-m-Y', $time - $args['daysAgo'] * 24 * 60 * 60);
+    // get the last record in summary table
+    $table = pnDBGetTables();
+    $c = $table['IWstats_summary_column'];
+    $orderby = "$c[datetime] desc";
+
+    $last = DBUtil::selectObjectArray('IWstats_summary', '', $orderby, -1, 1);
+
+    if ($last === false) {
+        return LogUtil::registerError(__('Error! Could not load data.'));
+    }
+
+    if (count($last) == 0) {
+        $last[0]['datetime'] = "2011-05-10 00:00:00";
+    }
+
+    $time = DateUtil::makeTimestamp($last[0]['datetime']);
+    $toDateTimeStamp = $time + $args['days'] * 24 * 60 * 60;
+    // calc the period
+    $fromDate = date('d-m-Y', $time + 24 * 60 * 60);
+    $toDate = date('d-m-Y', $toDateTimeStamp);
+    
+
+    if ($toDateTimeStamp > time() - 24 * 60 * 60)
+        $toDate = date('d-m-Y', time() - 24 * 60 * 60);
+
 
     // get last records
     $records = pnModAPIFunc('IWstats', 'user', 'getAllRecords', array('fromDate' => $fromDate,
@@ -76,13 +98,15 @@ function IWstats_adminapi_summary($args) {
 
     foreach ($records as $record) {
         if (key_exists(substr($record['datetime'], 0, 10), $recordsArray)) {
+            // add new information in array element
             $recordsArray[substr($record['datetime'], 0, 10)]['nRecords']++;
             if (($record['uid'] > 0))
                 $recordsArray[substr($record['datetime'], 0, 10)]['registered']++;
-            if (key_exists($record['uid'], $recordsArray[substr($record['datetime'], 0, 10)]['users'])) {
-                $recordsArray[substr($record['datetime'], 0, 10)]['users'][$record['uid']]++;
+            if (key_exists($record['moduleid'], $recordsArray[substr($record['datetime'], 0, 10)]['users'][$record['uid']]['modules'])) {
+                $recordsArray[substr($record['datetime'], 0, 10)]['users'][$record['uid']]['modules'][$record['moduleid']]++;
             } else {
-                $recordsArray[substr($record['datetime'], 0, 10)]['users'][$record['uid']] = 1;
+                // add a new user in users array field
+                $recordsArray[substr($record['datetime'], 0, 10)]['users'][$record['uid']]['modules'][$record['moduleid']] = 1;
             }
             if (key_exists($record['moduleid'], $recordsArray[substr($record['datetime'], 0, 10)]['modules'])) {
                 $recordsArray[substr($record['datetime'], 0, 10)]['modules'][$record['moduleid']]++;
@@ -95,12 +119,15 @@ function IWstats_adminapi_summary($args) {
                 $recordsArray[substr($record['datetime'], 0, 10)]['skippedModule']++;
             if (($record['isadmin'] == 1))
                 $recordsArray[substr($record['datetime'], 0, 10)]['isadmin']++;
+            if (!in_array($record['ip'], $recordsArray[substr($record['datetime'], 0, 10)]['ips'])) {
+                $recordsArray[substr($record['datetime'], 0, 10)]['ips'][] = $record['ip'];
+            }
         } else {
+            // add a new element into array
             $recordsArray[substr($record['datetime'], 0, 10)]['nRecords'] = 1;
             $recordsArray[substr($record['datetime'], 0, 10)]['registered'] = ($record['uid'] > 0) ? 1 : 0;
-            if ($record['uid'] > 0) {
-                $recordsArray[substr($record['datetime'], 0, 10)]['users'][$record['uid']] = 1;
-            }
+            $recordsArray[substr($record['datetime'], 0, 10)]['users'][$record['uid']]['modules'][$record['moduleid']] = 1;
+            $recordsArray[substr($record['datetime'], 0, 10)]['ips'][] = $record['ip'];
             $recordsArray[substr($record['datetime'], 0, 10)]['datetime'] = substr($record['datetime'], 0, 10) . ' 00:00:00';
             $recordsArray[substr($record['datetime'], 0, 10)]['modules'][$record['moduleid']] = 1;
             $recordsArray[substr($record['datetime'], 0, 10)]['skipped'] = ($record['skipped'] == 1) ? 1 : 0;
@@ -109,16 +136,30 @@ function IWstats_adminapi_summary($args) {
         }
     }
 
+    ksort($recordsArray);
+    
     // save records in ddbb
     foreach ($recordsArray as $record) {
-        $users = '$';
+        $usersArray = array();
         foreach ($record['users'] as $key => $value) {
-            $users .= '$' . $key . '|' . $value . '$';
+            $usersString = $key . '|';
+            $usersModulesArray = array();
+            foreach ($value['modules'] as $k => $v) {
+                $usersModulesArray[] = $k . '=' . $v;
+            }
+            $usersModulesString = implode('#', $usersModulesArray);
+            $usersArray[] = $usersString . $usersModulesString; 
         }
-        $modules = '$';
+
+        $users = '$' . implode('$$', $usersArray) . '$';
+        
+        $modulesArray = array();
         foreach ($record['modules'] as $key => $value) {
-            $modules .= '$' . $key . '|' . $value . '$';
+            $modulesArray[] = $key . '|' . $value;
         }
+
+        $modules = '$' . implode('$$', $modulesArray) . '$';
+
         $item = array(
             'datetime' => $record['datetime'],
             'nrecords' => $record['nRecords'],
@@ -128,6 +169,7 @@ function IWstats_adminapi_summary($args) {
             'skippedModule' => $record['skippedModule'],
             'isadmin' => $record['isadmin'],
             'users' => $users,
+            'nips' => count($record['ips']),
         );
 
         if (!DBUtil::insertObject($item, 'IWstats_summary')) {
@@ -136,4 +178,12 @@ function IWstats_adminapi_summary($args) {
     }
 
     // delete records from database
+    $delete = DateUtil::getDatetime(time() - $args['deleteFromDays'] * 24 * 60 * 60);
+
+    $c = $table['IWstats_column'];
+    $where = "$c[datetime] < '$delete'";
+
+    DBUtil::deleteWhere ('IWstats', $where);
+
+    return true;
 }

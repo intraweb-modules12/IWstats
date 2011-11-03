@@ -96,7 +96,7 @@ function IWstats_userapi_getAllRecords($args) {
     if (!isset($args['all']) || $args['all'] != 1) {
         $where .= "$and $c[isadmin] = 0 AND $c[skipped] = 0 AND $c[skippedModule] = 0";
     }
-    
+
     if ($args['fromDate'] != null) {
         $and = ($where == '') ? '' : ' AND';
         $from = mktime(0, 0, 0, substr($args['fromDate'], 3, 2), substr($args['fromDate'], 0, 2), substr($args['fromDate'], 6, 4));
@@ -105,7 +105,7 @@ function IWstats_userapi_getAllRecords($args) {
         $toSQL = date('Y-m-d H:i:s', $to);
         $where .= "$and ($c[datetime] BETWEEN '$fromSQL' AND '$toSQL')";
     }
-    
+
     $orderby = "$c[statsid] desc";
 
     if (isset($args['onlyNumber']) && $args['onlyNumber'] == 1) {
@@ -192,4 +192,63 @@ function IWstats_userapi_ip_in_range($args) {
     }
 
     return false;
+}
+
+function IWstats_userapi_getAllSummary($args) {
+    if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
+        return LogUtil::registerPermissionError();
+    }
+    $items = array();
+    $init = (isset($args['init'])) ? $args['init'] - 1 : -1;
+    $rpp = (isset($args['rpp'])) ? $args['rpp'] : -1;
+    $table = pnDBGetTables();
+    $where = "";
+    $c = $table['IWstats_summary_column'];
+    /*
+      if (isset($args['moduleId']) && $args['moduleId'] > 0) {
+      $and = ($where != '') ? ' AND ' : '';
+      $where .= $and . "$c[moduleid] = $args[moduleId]";
+      }
+
+
+
+      if (isset($args['ip']) && $args['ip'] != null) {
+      $and = ($where != '') ? ' AND ' : '';
+      $where .= $and . "$c[ip] = '$args[ip]'";
+      }
+
+      if (isset($args['registered']) && $args['registered'] == 1) {
+      $and = ($where != '') ? ' AND ' : '';
+      $where .= $and . "$c[uid] > 0";
+      }
+
+      $and = ($where == '') ? '' : ' AND';
+      if (!isset($args['all']) || $args['all'] != 1) {
+      $where .= "$and $c[isadmin] = 0 AND $c[skipped] = 0 AND $c[skippedModule] = 0";
+      }
+     */
+
+    $from = mktime(0, 0, 0, substr($args['fromDate'], 3, 2), substr($args['fromDate'], 0, 2), substr($args['fromDate'], 6, 4));
+    $to = mktime(23, 59, 59, substr($args['toDate'], 3, 2), substr($args['toDate'], 0, 2), substr($args['toDate'], 6, 4));
+    $fromSQL = date('Y-m-d H:i:s', $from);
+    $toSQL = date('Y-m-d H:i:s', $to);
+    $where .= "$and ($c[datetime] BETWEEN '$fromSQL' AND '$toSQL')";
+
+    if (isset($args['uid']) && $args['uid'] > 0) {
+        $and = ($where != '') ? ' AND ' : '';
+        $where .= $and . "$c[users] like '%$$args[uid]|%'";
+    }
+    
+    $orderby = "$c[summaryid] desc";
+
+    $items = DBUtil::selectObjectArray('IWstats_summary', $where, $orderby, $init, $rpp, 'summaryid');
+
+    // Check for an error with the database code, and if so set an appropriate
+    // error message and return
+    if ($items === false) {
+        return LogUtil::registerError(__('No s\'han pogut carregar els registres.'));
+    }
+
+    // Return the items
+    return $items;
 }
