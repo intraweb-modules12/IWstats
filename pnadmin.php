@@ -392,12 +392,16 @@ function IWstats_admin_viewStats($args) {
         }
     }
 
-    $usersList = implode('$$', $usersListArray);
+    if (count($usersListArray) > 0) {
+        $usersList = implode('$$', $usersListArray);
 
-    $sv = pnModFunc('iw_main', 'user', 'genSecurityValue');
-    $users = pnModFunc('iw_main', 'user', 'getAllUsersInfo', array('info' => 'ncc',
-        'sv' => $sv,
-        'list' => $usersList));
+        $sv = pnModFunc('iw_main', 'user', 'genSecurityValue');
+        $users = pnModFunc('iw_main', 'user', 'getAllUsersInfo', array('info' => 'ncc',
+            'sv' => $sv,
+            'list' => $usersList));
+    } else {
+        $users = array();
+    }
 
     // get all modules
     $modules = pnModAPIFunc('modules', 'admin', 'list');

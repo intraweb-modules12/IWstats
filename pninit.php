@@ -18,7 +18,7 @@ function IWstats_init() {
     }
 
     // create module tables
-    $tables = array('IWstats');
+    $tables = array('IWstats', 'IWstats_summary');
     foreach ($tables as $table) {
         if (!DBUtil::createTable($table)) {
             return false;
