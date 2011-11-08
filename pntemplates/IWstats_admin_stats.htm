@@ -30,18 +30,17 @@
             </div>
         </fieldset>
     </form>
-    
-    
+
     <fieldset>
         <legend><!--[gt text="Users"]--></legend>
-        <div>
+        <div class="statsItem">
             <!--[gt text="Number of registers:"]--> <!--[$nRecords]-->
         </div>
-        <div>
+        <div class="statsItem">
             <!--[gt text="Number of different Ip:"]--> <!--[$usersIpCounter]-->
         </div>
-        <div>
-            <!--[gt text="Number of registered users:"]--> <!--[$nusers]-->
+        <div class="statsItem">
+            <!--[gt text="Number of different registered users:"]--> <!--[$nusers]-->
         </div>
         <form id="userstats" class="z-form" action="<!--[pnmodurl modname='IWstats' type='admin' func='viewStats']-->" method="post" enctype="application/x-www-form-urlencoded">
             <div class="z-formrow">
@@ -58,6 +57,33 @@
         </form>
         <!--[if $uname neq '']-->
         <h2><!--[$userName]--></h2>
+        <div class="statsItem">
+            <!--[gt text="Number of registers:"]--> <!--[$userArray.nRecords]-->
+        </div>
+        <table class="z-datatable">
+            <thead>
+                <tr>
+                    <th><!--[gt text="Module"]--></th>
+                    <th><!--[gt text="Visits"]--></th>
+                </tr>
+            </thead>
+            <tbody>
+                <!--[foreach item=module from=$userArray.userModulesArray key=key]-->
+                <tr>
+                    <td>
+                        <a href="<!--[pnmodurl modname='IWstats' type='admin' func='viewStats' moduleName=$key]-->"><!--[$key]--></a>
+                    </td>
+                    <td>
+                        <!--[$module]-->
+                    </td>
+                </tr>
+                <!--[foreachelse]-->
+                <tr>
+                    <td colspan="2"><!--[gt text="No data found in this interval of time"]--></td>
+                </tr>
+                <!--[/foreach]-->
+            </tbody>
+        </table>
         <!--[/if]-->
     </fieldset>
     <fieldset>

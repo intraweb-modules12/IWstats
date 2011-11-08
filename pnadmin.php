@@ -382,9 +382,11 @@ function IWstats_admin_viewStats($args) {
 
     $usersListArray = array();
     $moduleStatsArray = array();
-    $userStatsArray = array();
+    $userModulesArray = array();
+    $userArray = array();
     $usersIpCounter = 0;
     $nRecords = 0;
+    $userNRecords = 0;
     foreach ($records as $record) {
         $nRecords = $nRecords + $record['nrecords'];
         $usersIpCounter = $usersIpCounter + $record['nips'];
@@ -395,10 +397,21 @@ function IWstats_admin_viewStats($args) {
                 $nusers++;
                 $usersListArray[] = $oneUser[0];
             }
-            if ($oneUser[0] == $uid) {
-                $userStatsArray[] = $record;
+            if ($oneUser[0] == $uid && $uid > 0) {
+                $userInit = '$' . $uid . '|';
+                $userDataPos = strpos($record['users'], $userInit);
+                $subDataPre = substr($record['users'], $userDataPos + strlen($userInit));
+                $userDataPos = strpos($subDataPre, '$');
+                $subDataPre = substr($subDataPre, 0, $userDataPos);
+                $userModules = explode('#', $subDataPre);
+                foreach ($userModules as $module) {
+                    $oneModule = explode('=', $module);
+                    $userModulesArray[$modulesNames[$oneModule[0]]] = $oneModule[1];
+                    $userNRecords = $userNRecords + $oneModule[1];
+                }
             }
         }
+
         $modules = explode('$$', substr($record['modules'], 1, -1)); // substr to remove $ in the begining and the end of the string
         foreach ($modules as $module) {
             $oneModule = explode('|', $module);
@@ -408,6 +421,12 @@ function IWstats_admin_viewStats($args) {
                 $moduleStatsArray[$modulesNames[$oneModule[0]]] = $moduleStatsArray[$modulesNames[$oneModule[0]]] + $oneModule[1];
             }
         }
+    }
+
+    if ($uid > 0) {
+        $userArray = array('nRecords' => $userNRecords,
+            'userModulesArray' => $userModulesArray,
+        );
     }
 
     ksort($moduleStatsArray);
@@ -431,6 +450,7 @@ function IWstats_admin_viewStats($args) {
     $pnRender->assign('registered', $registered);
     $pnRender->assign('fromDate', $fromDate);
     $pnRender->assign('toDate', $toDate);
+    $pnRender->assign('userArray', $userArray);
     $pnRender->assign('maxDate', date('Ymd', time()));
     $pnRender->assign('moduleStatsArray', $moduleStatsArray);
 
