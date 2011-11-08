@@ -92,11 +92,11 @@ function IWstats_userapi_getAllRecords($args) {
         $where .= $and . "$c[uid] > 0";
     }
 
-    $and = ($where == '') ? '' : ' AND';
     if (!isset($args['all']) || $args['all'] != 1) {
+        $and = ($where == '') ? '' : ' AND';
         $where .= "$and $c[isadmin] = 0 AND $c[skipped] = 0 AND $c[skippedModule] = 0";
     }
-
+    
     if ($args['fromDate'] != null) {
         $and = ($where == '') ? '' : ' AND';
         $from = mktime(0, 0, 0, substr($args['fromDate'], 3, 2), substr($args['fromDate'], 0, 2), substr($args['fromDate'], 6, 4));

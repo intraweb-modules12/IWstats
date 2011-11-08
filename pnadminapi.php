@@ -67,13 +67,19 @@ function IWstats_adminapi_summary($args) {
     $c = $table['IWstats_summary_column'];
     $orderby = "$c[datetime] desc";
 
-    $last = DBUtil::selectObjectArray('IWstats_summary', '', $orderby, -1, 1);
+    $last = array();
 
-    if ($last === false) {
-        return LogUtil::registerError(__('Error! Could not load data.'));
+    if (!isset($args['last'])) {
+        $last = DBUtil::selectObjectArray('IWstats_summary', '', $orderby, -1, 1);
+
+        if ($last === false) {
+            return LogUtil::registerError(__('Error! Could not load data.'));
+        }
+    } else {
+        $last[0]['datetime'] = $args['last'];
     }
 
-    if (count($last) == 0) {
+    if (count($last) == 0 && !isset($args['last'])) {
         $last[0]['datetime'] = "2011-05-10 00:00:00";
     }
 
@@ -82,17 +88,24 @@ function IWstats_adminapi_summary($args) {
     // calc the period
     $fromDate = date('d-m-Y', $time + 24 * 60 * 60);
     $toDate = date('d-m-Y', $toDateTimeStamp);
-    
+
 
     if ($toDateTimeStamp > time() - 24 * 60 * 60)
         $toDate = date('d-m-Y', time() - 24 * 60 * 60);
 
-
-    // get last records
     $records = pnModAPIFunc('IWstats', 'user', 'getAllRecords', array('fromDate' => $fromDate,
         'toDate' => $toDate,
         'all' => 1,
             ));
+    
+    // to aviod stop due to periods with zero visits
+    if (!$records && DateUtil::makeTimestamp($last[0]['datetime']) < time()) {
+        $last = date('Y-m-d 00:00:00', DateUtil::makeTimestamp($last[0]['datetime']) + $args['days'] * 24 * 60 * 60);
+        pnModAPIFunc('IWstats', 'admin', 'summary', array('last' => $last,
+            'days' => $args['days'],
+            'deleteFromDays' => $args['deleteFromDays'],
+        ));
+    }
 
     $recordsArray = array();
 
@@ -137,7 +150,7 @@ function IWstats_adminapi_summary($args) {
     }
 
     ksort($recordsArray);
-    
+
     // save records in ddbb
     foreach ($recordsArray as $record) {
         $usersArray = array();
@@ -148,11 +161,11 @@ function IWstats_adminapi_summary($args) {
                 $usersModulesArray[] = $k . '=' . $v;
             }
             $usersModulesString = implode('#', $usersModulesArray);
-            $usersArray[] = $usersString . $usersModulesString; 
+            $usersArray[] = $usersString . $usersModulesString;
         }
 
         $users = '$' . implode('$$', $usersArray) . '$';
-        
+
         $modulesArray = array();
         foreach ($record['modules'] as $key => $value) {
             $modulesArray[] = $key . '|' . $value;
@@ -183,7 +196,7 @@ function IWstats_adminapi_summary($args) {
     $c = $table['IWstats_column'];
     $where = "$c[datetime] < '$delete'";
 
-    DBUtil::deleteWhere ('IWstats', $where);
+    DBUtil::deleteWhere('IWstats', $where);
 
     return true;
 }

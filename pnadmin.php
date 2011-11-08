@@ -313,27 +313,16 @@ function IWstats_admin_deleteIp($args) {
 
 function IWstats_admin_viewStats($args) {
     $statsSaved = unserialize(SessionUtil::getVar('statsSaved'));
-    $startnum = FormUtil::getPassedValue('startnum', isset($args['startnum']) ? $args['startnum'] : 1, 'GETPOST');
-    $moduleId = FormUtil::getPassedValue('moduleId', isset($args['moduleId']) ? $args['moduleId'] : $statsSaved['moduleId'], 'GETPOST');
+    $moduleName = FormUtil::getPassedValue('moduleName', isset($args['moduleName']) ? $args['moduleName'] : $statsSaved['moduleName'], 'GETPOST');
     $uname = FormUtil::getPassedValue('uname', isset($args['uname']) ? $args['uname'] : $statsSaved['uname'], 'GETPOST');
-    $ip = FormUtil::getPassedValue('ip', isset($args['ip']) ? $args['ip'] : $statsSaved['ip'], 'GETPOST');
-    $registered = FormUtil::getPassedValue('registered', isset($args['registered']) ? $args['registered'] : $statsSaved['registered'], 'GETPOST');
-    $reset = FormUtil::getPassedValue('reset', isset($args['reset']) ? $args['reset'] : 0, 'GET');
-    $fromDate = FormUtil::getPassedValue('fromDate', isset($args['fromDate']) ? $args['fromDate'] : null, 'GETPOST');
-    $toDate = FormUtil::getPassedValue('toDate', isset($args['toDate']) ? $args['toDate'] : null, 'GETPOST');
-    pnSessionSetVar('statsSaved', serialize(array('moduleId' => $moduleId,
-                'uname' => $uname,
-                'ip' => $ip,
-                'registered' => $registered,
+    $fromDate = FormUtil::getPassedValue('fromDate', isset($args['fromDate']) ? $args['fromDate'] : $statsSaved['fromDate'], 'GETPOST');
+    $toDate = FormUtil::getPassedValue('toDate', isset($args['toDate']) ? $args['toDate'] : $statsSaved['toDate'], 'GETPOST');
+    pnSessionSetVar('statsSaved', serialize(array('uname' => $uname,
+                'moduleName' => $moduleName,
+                'fromDate' => $fromDate,
+                'toDate' => $toDate,
             )));
 
-    if ($reset == 1) {
-        $ip = null;
-        $uname = null;
-        $registered = 0;
-        $moduleId = 0;
-        pnSessionDelVar('statsSaved');
-    }
 
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
         return LogUtil::registerPermissionError();
@@ -342,6 +331,7 @@ function IWstats_admin_viewStats($args) {
     $uid = 0;
     $rpp = 50;
     $lastDays = 10;
+    $nusers = 0;
 
     if ($uname != null && $uname != '') {
         // get user id from uname
@@ -377,59 +367,73 @@ function IWstats_admin_viewStats($args) {
         'init' => -1,
         'fromDate' => $fromDate,
         'toDate' => $toDate,
-        'uid' => $uid,
             ));
 
+    // get all modules
+    $modules = pnModAPIFunc('modules', 'admin', 'list');
+
+    foreach ($modules as $module) {
+        $modulesNames[$module['id']] = $module['name'];
+        $modulesArray[] = array('id' => $module['id'],
+            'name' => $module['name']);
+    }
+
+    $modulesNames[0] = __('unknown');
+
     $usersListArray = array();
+    $moduleStatsArray = array();
+    $userStatsArray = array();
+    $usersIpCounter = 0;
+    $nRecords = 0;
     foreach ($records as $record) {
+        $nRecords = $nRecords + $record['nrecords'];
         $usersIpCounter = $usersIpCounter + $record['nips'];
         $users = explode('$$', substr($record['users'], 1, -1)); // substr to remove $ in the begining and the end of the string
         foreach ($users as $user) {
             $oneUser = explode('|', $user);
             if (!in_array($oneUser[0], $usersListArray)) {
+                $nusers++;
                 $usersListArray[] = $oneUser[0];
+            }
+            if ($oneUser[0] == $uid) {
+                $userStatsArray[] = $record;
+            }
+        }
+        $modules = explode('$$', substr($record['modules'], 1, -1)); // substr to remove $ in the begining and the end of the string
+        foreach ($modules as $module) {
+            $oneModule = explode('|', $module);
+            if (array_key_exists($modulesNames[$oneModule[0]], $modulesStatsArray)) {
+                $moduleStatsArray[$modulesNames[$oneModule[0]]] = $oneModule[1];
+            } else {
+                $moduleStatsArray[$modulesNames[$oneModule[0]]] = $moduleStatsArray[$modulesNames[$oneModule[0]]] + $oneModule[1];
             }
         }
     }
 
-    if (count($usersListArray) > 0) {
-        $usersList = implode('$$', $usersListArray);
+    ksort($moduleStatsArray);
 
+    if ($uid > 0) {
         $sv = pnModFunc('iw_main', 'user', 'genSecurityValue');
-        $users = pnModFunc('iw_main', 'user', 'getAllUsersInfo', array('info' => 'ncc',
+        $userName = pnModFunc('iw_main', 'user', 'getUserInfo', array('info' => 'ncc',
             'sv' => $sv,
-            'list' => $usersList));
-    } else {
-        $users = array();
-    }
-
-    // get all modules
-    $modules = pnModAPIFunc('modules', 'admin', 'list');
-
-    $skippedModulesArray = unserialize(pnModGetVar('IWstats', 'modulesSkipped'));
-
-    foreach ($modules as $module) {
-        if (!in_array($module['id'], $skippedModulesArray)) {
-            $modulesNames[$module['id']] = $module['name'];
-            $modulesArray[] = array('id' => $module['id'],
-                'name' => $module['name']);
-        }
+            'uid' => $uid));
     }
 
     $pnRender = pnRender::getInstance('IWstats', false);
-    $pnRender->assign('records', $records);
-    $pnRender->assign('users', $users);
-    $pnRender->assign('usersIdsCounter', $usersIdsCounter);
+    $pnRender->assign('nRecords', $nRecords);
+    $pnRender->assign('nusers', $nusers);
+    $pnRender->assign('userName', $userName);
     $pnRender->assign('usersIpCounter', $usersIpCounter);
     $pnRender->assign('modulesNames', $modulesNames);
     $pnRender->assign('modulesArray', $modulesArray);
-    $pnRender->assign('moduleId', $moduleId);
-    $pnRender->assign('url', pnGetBaseURL());
+    $pnRender->assign('moduleName', $moduleName);
     $pnRender->assign('uname', $uname);
     $pnRender->assign('registered', $registered);
     $pnRender->assign('fromDate', $fromDate);
     $pnRender->assign('toDate', $toDate);
     $pnRender->assign('maxDate', date('Ymd', time()));
+    $pnRender->assign('moduleStatsArray', $moduleStatsArray);
+
     return $pnRender->fetch('IWstats_admin_stats.htm');
 }
 
