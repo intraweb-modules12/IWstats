@@ -406,7 +406,12 @@ function IWstats_admin_viewStats($args) {
                 $userModules = explode('#', $subDataPre);
                 foreach ($userModules as $module) {
                     $oneModule = explode('=', $module);
-                    $userModulesArray[$modulesNames[$oneModule[0]]] = $oneModule[1];
+                    if (array_key_exists($modulesNames[$oneModule[0]], $modulesStatsArray)) {
+                        $userModulesArray[$modulesNames[$oneModule[0]]] = $oneModule[1];
+                    } else {
+                        $userModulesArray[$modulesNames[$oneModule[0]]] = $userModulesArray[$modulesNames[$oneModule[0]]] + $oneModule[1];
+                    }
+                    
                     $userNRecords = $userNRecords + $oneModule[1];
                 }
             }
