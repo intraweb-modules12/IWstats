@@ -65,6 +65,7 @@ function IWstats_userapi_getAllRecords($args) {
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
         return LogUtil::registerPermissionError();
     }
+
     $items = array();
     $init = (isset($args['init'])) ? $args['init'] - 1 : -1;
     $rpp = (isset($args['rpp'])) ? $args['rpp'] : -1;
@@ -96,11 +97,16 @@ function IWstats_userapi_getAllRecords($args) {
         $and = ($where == '') ? '' : ' AND';
         $where .= "$and $c[isadmin] = 0 AND $c[skipped] = 0 AND $c[skippedModule] = 0";
     }
-    
+
     if ($args['fromDate'] != null) {
         $and = ($where == '') ? '' : ' AND';
-        $from = mktime(0, 0, 0, substr($args['fromDate'], 3, 2), substr($args['fromDate'], 0, 2), substr($args['fromDate'], 6, 4));
-        $to = mktime(23, 59, 59, substr($args['toDate'], 3, 2), substr($args['toDate'], 0, 2), substr($args['toDate'], 6, 4));
+        if (!isset($args['timeIncluded'])) {
+            $from = mktime(0, 0, 0, substr($args['fromDate'], 3, 2), substr($args['fromDate'], 0, 2), substr($args['fromDate'], 6, 4));
+            $to = mktime(23, 59, 59, substr($args['toDate'], 3, 2), substr($args['toDate'], 0, 2), substr($args['toDate'], 6, 4));
+        } else {
+            $from = mktime(substr($args['fromDate'],11,2), substr($args['fromDate'],14,2), substr($args['fromDate'],17,2), substr($args['fromDate'], 3, 2), substr($args['fromDate'], 0, 2), substr($args['fromDate'], 6, 4));
+            $to = mktime(substr($args['toDate'],11,2), substr($args['toDate'],14,2), substr($args['toDate'],17,2), substr($args['toDate'], 3, 2), substr($args['toDate'], 0, 2), substr($args['toDate'], 6, 4));
+        }
         $fromSQL = date('Y-m-d H:i:s', $from);
         $toSQL = date('Y-m-d H:i:s', $to);
         $where .= "$and ($c[datetime] BETWEEN '$fromSQL' AND '$toSQL')";
@@ -238,7 +244,7 @@ function IWstats_userapi_getAllSummary($args) {
         $and = ($where != '') ? ' AND ' : '';
         $where .= $and . "$c[users] like '%$$args[uid]|%'";
     }
-    
+
     $orderby = "$c[summaryid] desc";
 
     $items = DBUtil::selectObjectArray('IWstats_summary', $where, $orderby, $init, $rpp, 'summaryid');

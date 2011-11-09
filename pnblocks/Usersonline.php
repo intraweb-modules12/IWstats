@@ -41,7 +41,7 @@ function IWstats_usersonlineblock_display($blockinfo) {
         'uid' => $uid,
         'sv' => $sv));
 
-    $exists = false;
+    //$exists = false;
 
     if ($exists) {
         $sv = pnModFunc('iw_main', 'user', 'genSecurityValue');
@@ -63,18 +63,51 @@ function IWstats_usersonlineblock_display($blockinfo) {
     $refreshtime = $content['refreshtime'];
     $unsee = $content['unsee'];
 
-    // get records
-    // CONTINUAR AQUÍ
-    
-    
-    
+    $time = time();
+    $time0 = $time - $sessiontime * 60;
 
+    $fromDate = date('d-m-Y H:i:s', $time0);
+    $toDate = date('d-m-Y H:i:s', $time);
+    
+    $records = pnModAPIFunc('IWstats', 'user', 'getAllRecords', array('rpp' => -1,
+        'init' => -1,
+        'fromDate' => $fromDate,
+        'toDate' => $toDate,
+        'all' => 1,
+        'timeIncluded' => 1,
+            ));
+    
+    $users = array();
+    $ipArray = array();
+    $usersArray = array();
+    // get the number of validated users and the number of different Ips detected
+    foreach ($records as $record) {
+        if (!in_array($record['ip'], $ipArray)) {
+            $ipArray[] = $record['ip'];
+        }
+        if (!in_array($record['uid'], $usersArray) && $record['uid'] > 0) {
+            $usersArray[] = $record['uid'];
+        }
+    }
 
-    $seeunames = ($unsee == 1 && $uid > 0) ? 1 : 0;
+    $online = count($ipArray) - count($usersArray);
 
+    $seeunames = ($unsee == 1 || $uid > 0) ? 1 : 0;
+
+    if ($seeunames && count($usersArray) > 0) {
+        $sv = pnModFunc('iw_main', 'user', 'genSecurityValue');
+        $users = pnModFunc('iw_main', 'user', 'getAllUsersInfo', array('info' => 'ncc',
+            'sv' => $sv,
+            'fromArray' => $usersArray));
+    }
+    
     // create output object
     $pnRender = pnRender::getInstance('IWstats', false);
     $pnRender->assign('seeunames', $seeunames);
+    $pnRender->assign('users', $users);
+    $pnRender->assign('online', $online);
+    $pnRender->assign('validated', count($usersArray));
+    
     $s = $pnRender->fetch('IWstats_block_usersonline.htm');
     // copy the block information into user vars
     $sv = pnModFunc('iw_main', 'user', 'genSecurityValue');
