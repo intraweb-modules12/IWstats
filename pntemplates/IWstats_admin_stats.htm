@@ -99,7 +99,9 @@
                 <!--[foreach item=module from=$moduleStatsArray key=key]-->
                 <tr>
                     <td>
-                        <a href="<!--[pnmodurl modname='IWstats' type='admin' func='viewStats' moduleName=$key]-->"><!--[$key]--></a>
+                        <a href="<!--[pnmodurl modname='IWstats' type='admin' func='viewStats' moduleName=$key]-->">
+                            <!--[$key]-->
+                        </a>
                     </td>
                     <td>
                         <!--[$module]-->
@@ -114,6 +116,32 @@
         </table>
         <!--[if $moduleName]-->
         <h2><!--[$moduleName]--></h2>
+        <table class="z-datatable">
+            <thead>
+                <tr>
+                    <th><!--[gt text="User"]--></th>
+                    <th><!--[gt text="Visits"]--></th>
+                </tr>
+            </thead>
+            <tbody>
+                <!--[foreach item=visits from=$usersForModule key=key]-->
+                <tr>
+                    <td>
+                        <a href="<!--[pnmodurl modname='IWstats' type='admin' func='viewStats' uid=$key]-->">
+                            <!--[$users[$key]]-->
+                        </a>
+                    </td>
+                    <td>
+                        <!--[$visits]-->
+                    </td>
+                </tr>
+                <!--[foreachelse]-->
+                <tr>
+                    <td colspan="2"><!--[gt text="No data found in this interval of time"]--></td>
+                </tr>
+                <!--[/foreach]-->
+            </tbody>
+        </table>
         <!--[/if]-->
     </fieldset>
 

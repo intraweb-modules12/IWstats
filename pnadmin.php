@@ -317,6 +317,12 @@ function IWstats_admin_viewStats($args) {
     $uname = FormUtil::getPassedValue('uname', isset($args['uname']) ? $args['uname'] : $statsSaved['uname'], 'GETPOST');
     $fromDate = FormUtil::getPassedValue('fromDate', isset($args['fromDate']) ? $args['fromDate'] : $statsSaved['fromDate'], 'GETPOST');
     $toDate = FormUtil::getPassedValue('toDate', isset($args['toDate']) ? $args['toDate'] : $statsSaved['toDate'], 'GETPOST');
+    $uid = FormUtil::getPassedValue('uid', isset($args['uid']) ? $args['uid'] : 0, 'GETPOST');
+
+    if ($uid > 0) {
+        $uname = pnUserGetVar('uname', $uid);
+    }
+
     pnSessionSetVar('statsSaved', serialize(array('uname' => $uname,
                 'moduleName' => $moduleName,
                 'fromDate' => $fromDate,
@@ -384,15 +390,20 @@ function IWstats_admin_viewStats($args) {
     $moduleStatsArray = array();
     $userModulesArray = array();
     $userArray = array();
+    $moduleArray = array();
+    $usersForModule = array();
+    $users = array();
     $usersIpCounter = 0;
     $nRecords = 0;
     $userNRecords = 0;
+    $usersList = '';
     foreach ($records as $record) {
         $nRecords = $nRecords + $record['nrecords'];
         $usersIpCounter = $usersIpCounter + $record['nips'];
         $users = explode('$$', substr($record['users'], 1, -1)); // substr to remove $ in the begining and the end of the string
         foreach ($users as $user) {
             $oneUser = explode('|', $user);
+
             if (!in_array($oneUser[0], $usersListArray)) {
                 $nusers++;
                 $usersListArray[] = $oneUser[0];
@@ -405,14 +416,39 @@ function IWstats_admin_viewStats($args) {
                 $subDataPre = substr($subDataPre, 0, $userDataPos);
                 $userModules = explode('#', $subDataPre);
                 foreach ($userModules as $module) {
+                    //print $module . '<br />';
                     $oneModule = explode('=', $module);
                     if (array_key_exists($modulesNames[$oneModule[0]], $modulesStatsArray)) {
                         $userModulesArray[$modulesNames[$oneModule[0]]] = $oneModule[1];
                     } else {
                         $userModulesArray[$modulesNames[$oneModule[0]]] = $userModulesArray[$modulesNames[$oneModule[0]]] + $oneModule[1];
                     }
-                    
+
                     $userNRecords = $userNRecords + $oneModule[1];
+                }
+            }
+            if ($moduleName != '') {
+                $moduleId = pnModGetIDFromName($moduleName);
+                if ((strpos($oneUser[1], $moduleId . '=') !== false && strpos($oneUser[1], $moduleId . '=') == 0) || strpos($oneUser[1], '#' . $moduleId . '=') !== false) {
+                    // get the number of views
+                    $pos = strpos($oneUser[1], $moduleId . '=');
+                    if ($pos != 0) {
+                        $pos = strpos($oneUser[1], '#' . $moduleId . '=');
+                    }
+                    $preString = substr($oneUser[1], $pos);
+                    //print $preString . '<br />';
+                    if ($pos != 0) {
+                        $preString = substr($preString, 1);
+                    }
+                    $pos = strpos($preString, '#');
+                    $preString = ($pos == 0) ? $preString : substr($preString, 0, $pos);
+                    $num = explode('=', $preString);
+                    if (!array_key_exists($oneUser[0], $usersForModule)) {
+                        $usersForModule[$oneUser[0]] = $num[1];
+                        $usersList .= $oneUser[0] . '$$';
+                    } else {
+                        $usersForModule[$oneUser[0]] = $usersForModule[$oneUser[0]] + $num[1];
+                    }
                 }
             }
         }
@@ -428,6 +464,8 @@ function IWstats_admin_viewStats($args) {
         }
     }
 
+    ksort($userModulesArray);
+        
     if ($uid > 0) {
         $userArray = array('nRecords' => $userNRecords,
             'userModulesArray' => $userModulesArray,
@@ -443,7 +481,17 @@ function IWstats_admin_viewStats($args) {
             'uid' => $uid));
     }
 
+    if ($moduleName != '') {
+        $sv = pnModFunc('iw_main', 'user', 'genSecurityValue');
+        $users = pnModFunc('iw_main', 'user', 'getAllUsersInfo', array('info' => 'ncc',
+            'sv' => $sv,
+            'list' => $usersList,
+                ));
+        $users[0] = __('Unregistered');
+    }
+
     $pnRender = pnRender::getInstance('IWstats', false);
+    $pnRender->assign('users', $users);
     $pnRender->assign('nRecords', $nRecords);
     $pnRender->assign('nusers', $nusers);
     $pnRender->assign('userName', $userName);
@@ -457,6 +505,7 @@ function IWstats_admin_viewStats($args) {
     $pnRender->assign('toDate', $toDate);
     $pnRender->assign('userArray', $userArray);
     $pnRender->assign('maxDate', date('Ymd', time()));
+    $pnRender->assign('usersForModule', $usersForModule);
     $pnRender->assign('moduleStatsArray', $moduleStatsArray);
 
     return $pnRender->fetch('IWstats_admin_stats.htm');
