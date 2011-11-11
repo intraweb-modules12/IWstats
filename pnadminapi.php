@@ -3,18 +3,21 @@
 function IWstats_adminapi_reset($args) {
 
     $dom = ZLanguage::getModuleDomain('IWstats');
-    
+
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_DELETE)) {
         return LogUtil::registerError(__('Sorry! No authorization to access this module.', $dom));
     }
-   
-    $deletiondays = $args['deletiondays'];
 
-    // TODO: delete depending on the number of days not all the table like now
-    if (!DBUtil::executeSQL('Truncate table ' . System::getVar('prefix') . '_IWstats')) {
-        return LogUtil::registerError(__('Error! Sorry! Deletion attempt failed.', $dom));
-    }
+    // delete records from database
+    $delete = DateUtil::getDatetime(time() - $args['deleteFromDays'] * 24 * 60 * 60);
+
+    // get the last record in summary table
+    $table = pnDBGetTables();
+    $c = $table['IWstats_column'];
+    $where = "$c[datetime] < '$delete'";
+
+    DBUtil::deleteWhere('IWstats', $where);
 
     // Return the id of the newly created item to the calling process
     return true;
@@ -22,9 +25,9 @@ function IWstats_adminapi_reset($args) {
 
 // skipped value to 1 for IP
 function IWstats_adminapi_deleteIp($args) {
-    
+
     $dom = ZLanguage::getModuleDomain('IWstats');
-    
+
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_DELETE)) {
         return LogUtil::registerError(__('Sorry! No authorization to access this module.', $dom));
@@ -44,7 +47,7 @@ function IWstats_adminapi_deleteIp($args) {
 
 function IWstats_adminapi_skipModules($args) {
     $dom = ZLanguage::getModuleDomain('IWstats');
-    
+
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_EDIT)) {
         return LogUtil::registerError(__('Sorry! No authorization to access this module.', $dom));
@@ -70,9 +73,9 @@ function IWstats_adminapi_skipModules($args) {
 }
 
 function IWstats_adminapi_summary($args) {
-    
+
     $dom = ZLanguage::getModuleDomain('IWstats');
-    
+
     // get the last record in summary table
     $table = pnDBGetTables();
     $c = $table['IWstats_summary_column'];
@@ -108,7 +111,7 @@ function IWstats_adminapi_summary($args) {
         'toDate' => $toDate,
         'all' => 1,
             ));
-    
+
     // to aviod stop due to periods with zero visits
     if (!$records && DateUtil::makeTimestamp($last[0]['datetime']) < time()) {
         $last = date('Y-m-d 00:00:00', DateUtil::makeTimestamp($last[0]['datetime']) + $args['days'] * 24 * 60 * 60);

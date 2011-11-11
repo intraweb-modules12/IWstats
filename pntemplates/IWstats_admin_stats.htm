@@ -125,6 +125,7 @@
             </thead>
             <tbody>
                 <!--[foreach item=visits from=$usersForModule key=key]-->
+                <!--[if isset($users[$key])]-->
                 <tr>
                     <td>
                         <a href="<!--[pnmodurl modname='IWstats' type='admin' func='viewStats' uid=$key]-->">
@@ -135,6 +136,7 @@
                         <!--[$visits]-->
                     </td>
                 </tr>
+                <!--[/if]-->
                 <!--[foreachelse]-->
                 <tr>
                     <td colspan="2"><!--[gt text="No data found in this interval of time"]--></td>

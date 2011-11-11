@@ -11,16 +11,21 @@ function IWstats_admin_main() {
 
 function IWstats_admin_view($args) {
     $statsSaved = unserialize(SessionUtil::getVar('statsSaved'));
+
+    $registered = (isset($statsSaved['registered'])) ? $statsSaved['registered'] : 0;
+    $moduleId = (isset($statsSaved['moduleId'])) ? $statsSaved['moduleId'] : 0;
+    $ip = (isset($statsSaved['ip'])) ? $statsSaved['ip'] : 0;
+
     $startnum = FormUtil::getPassedValue('startnum', isset($args['startnum']) ? $args['startnum'] : 1, 'GETPOST');
-    $moduleId = FormUtil::getPassedValue('moduleId', isset($args['moduleId']) ? $args['moduleId'] : $statsSaved['moduleId'], 'GETPOST');
+    $moduleId = FormUtil::getPassedValue('moduleId', isset($args['moduleId']) ? $args['moduleId'] : $moduleId, 'GETPOST');
     $uname = FormUtil::getPassedValue('uname', isset($args['uname']) ? $args['uname'] : $statsSaved['uname'], 'GETPOST');
-    $ip = FormUtil::getPassedValue('ip', isset($args['ip']) ? $args['ip'] : $statsSaved['ip'], 'GETPOST');
-    $registered = FormUtil::getPassedValue('registered', isset($args['registered']) ? $args['registered'] : $statsSaved['registered'], 'GETPOST');
+    $ip = FormUtil::getPassedValue('ip', isset($args['ip']) ? $args['ip'] : $ip, 'GETPOST');
+    $registered = FormUtil::getPassedValue('registered', isset($args['registered']) ? $args['registered'] : $registered, 'GETPOST');
     $reset = FormUtil::getPassedValue('reset', isset($args['reset']) ? $args['reset'] : 0, 'GET');
     $fromDate = FormUtil::getPassedValue('fromDate', isset($args['fromDate']) ? $args['fromDate'] : null, 'GETPOST');
     $toDate = FormUtil::getPassedValue('toDate', isset($args['toDate']) ? $args['toDate'] : null, 'GETPOST');
 
-$dom = ZLanguage::getModuleDomain('IWstats');
+    $dom = ZLanguage::getModuleDomain('IWstats');
 
     SessionUtil::setVar('statsSaved', serialize(array('moduleId' => $moduleId,
                 'uname' => $uname,
@@ -184,10 +189,10 @@ $dom = ZLanguage::getModuleDomain('IWstats');
 
 function IWstats_admin_reset($args) {
     $confirmation = FormUtil::getPassedValue('confirmation', isset($args['confirmation']) ? $args['confirmation'] : null, 'POST');
-    $deletiondays = FormUtil::getPassedValue('deletiondays', isset($args['deletiondays']) ? $args['deletiondays'] : null, 'POST');
+    $deleteFromDays = FormUtil::getPassedValue('deleteFromDays', isset($args['deleteFromDays']) ? $args['deleteFromDays'] : null, 'POST');
 
     $dom = ZLanguage::getModuleDomain('IWstats');
-    
+
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
         return LogUtil::registerPermissionError();
@@ -200,17 +205,17 @@ function IWstats_admin_reset($args) {
     }
 
     if (!SecurityUtil::confirmAuthKey()) {
-        return LogUtil::registerAuthidError(ModUtil::url('IWstats', 'admin', 'main'));
+        return LogUtil::registerAuthidError(pnModURL('IWstats', 'admin', 'main'));
     }
 
     // reset the site statistics
-    if (!pnModAPIFunc('IWstats', 'admin', 'reset', array('deletiondays' => $deletiondays))) {
+    if (!pnModAPIFunc('IWstats', 'admin', 'reset', array('deleteFromDays' => $deleteFromDays))) {
         LogUtil::registerError(__('IWstats reset error.', $dom));
-        return System::redirect(ModUtil::url('IWstats', 'admin', 'main'));
+        return pnredirect(pnModurl('IWstats', 'admin', 'main'));
     }
     // Success
     LogUtil::registerStatus(__('IWstats reset', $dom));
-    return System::redirect(ModUtil::url('IWstats', 'admin', 'main'));
+    return pnredirect(pnModurl('IWstats', 'admin', 'main'));
 }
 
 /**
@@ -252,9 +257,9 @@ function IWstats_admin_modifyconfig() {
 function IWstats_admin_updateconfig($args) {
     $skippedIps = FormUtil::getPassedValue('skippedIps', isset($args['skippedIps']) ? $args['skippedIps'] : 1, 'POST');
     $moduleId = FormUtil::getPassedValue('moduleId', isset($args['moduleId']) ? $args['moduleId'] : array(), 'POST');
-    
+
     $dom = ZLanguage::getModuleDomain('IWstats');
-    
+
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
         return LogUtil::registerPermissionError();
@@ -319,10 +324,15 @@ function IWstats_admin_deleteIp($args) {
 
 function IWstats_admin_viewStats($args) {
     $statsSaved = unserialize(SessionUtil::getVar('statsSaved'));
-    $moduleName = FormUtil::getPassedValue('moduleName', isset($args['moduleName']) ? $args['moduleName'] : $statsSaved['moduleName'], 'GETPOST');
+
+    $moduleName = (isset($statsSaved['moduleName'])) ? $statsSaved['moduleName'] : '';
+    $fromDate = (isset($statsSaved['fromDate'])) ? $statsSaved['fromDate'] : null;
+    $toDate = (isset($statsSaved['toDate'])) ? $statsSaved['toDate'] : '';
+
+    $moduleName = FormUtil::getPassedValue('moduleName', isset($args['moduleName']) ? $args['moduleName'] : $moduleName, 'GETPOST');
     $uname = FormUtil::getPassedValue('uname', isset($args['uname']) ? $args['uname'] : $statsSaved['uname'], 'GETPOST');
-    $fromDate = FormUtil::getPassedValue('fromDate', isset($args['fromDate']) ? $args['fromDate'] : $statsSaved['fromDate'], 'GETPOST');
-    $toDate = FormUtil::getPassedValue('toDate', isset($args['toDate']) ? $args['toDate'] : $statsSaved['toDate'], 'GETPOST');
+    $fromDate = FormUtil::getPassedValue('fromDate', isset($args['fromDate']) ? $args['fromDate'] : $fromDate, 'GETPOST');
+    $toDate = FormUtil::getPassedValue('toDate', isset($args['toDate']) ? $args['toDate'] : $toDate, 'GETPOST');
     $uid = FormUtil::getPassedValue('uid', isset($args['uid']) ? $args['uid'] : 0, 'GETPOST');
 
     if ($uid > 0) {
@@ -330,7 +340,7 @@ function IWstats_admin_viewStats($args) {
     }
 
     $dom = ZLanguage::getModuleDomain('IWstats');
-    
+
     pnSessionSetVar('statsSaved', serialize(array('uname' => $uname,
                 'moduleName' => $moduleName,
                 'fromDate' => $fromDate,
@@ -464,16 +474,18 @@ function IWstats_admin_viewStats($args) {
         $modules = explode('$$', substr($record['modules'], 1, -1)); // substr to remove $ in the begining and the end of the string
         foreach ($modules as $module) {
             $oneModule = explode('|', $module);
-            if (array_key_exists($modulesNames[$oneModule[0]], $modulesStatsArray)) {
-                $moduleStatsArray[$modulesNames[$oneModule[0]]] = $oneModule[1];
-            } else {
-                $moduleStatsArray[$modulesNames[$oneModule[0]]] = $moduleStatsArray[$modulesNames[$oneModule[0]]] + $oneModule[1];
+            if (isset($modulesNames[$oneModule[0]])) {
+                if (!array_key_exists($modulesNames[$oneModule[0]], $moduleStatsArray)) {
+                    $moduleStatsArray[$modulesNames[$oneModule[0]]] = $oneModule[1];
+                } else {
+                    $moduleStatsArray[$modulesNames[$oneModule[0]]] = $moduleStatsArray[$modulesNames[$oneModule[0]]] + $oneModule[1];
+                }
             }
         }
     }
 
     ksort($userModulesArray);
-        
+
     if ($uid > 0) {
         $userArray = array('nRecords' => $userNRecords,
             'userModulesArray' => $userModulesArray,
@@ -508,7 +520,6 @@ function IWstats_admin_viewStats($args) {
     $pnRender->assign('modulesArray', $modulesArray);
     $pnRender->assign('moduleName', $moduleName);
     $pnRender->assign('uname', $uname);
-    $pnRender->assign('registered', $registered);
     $pnRender->assign('fromDate', $fromDate);
     $pnRender->assign('toDate', $toDate);
     $pnRender->assign('userArray', $userArray);
@@ -523,9 +534,9 @@ function IWstats_admin_summary() {
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
         return LogUtil::registerPermissionError();
     }
-    
+
     $dom = ZLanguage::getModuleDomain('IWstats');
-    
+
     $days = 15;
     $deleteFromDays = 170;
     pnModAPIFunc('IWstats', 'admin', 'summary', array('days' => $days,
