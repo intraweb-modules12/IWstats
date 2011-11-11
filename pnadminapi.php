@@ -1,16 +1,19 @@
 <?php
 
 function IWstats_adminapi_reset($args) {
+
+    $dom = ZLanguage::getModuleDomain('IWstats');
+    
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_DELETE)) {
-        return LogUtil::registerError($this->__('Sorry! No authorization to access this module.'));
+        return LogUtil::registerError(__('Sorry! No authorization to access this module.', $dom));
     }
-
+   
     $deletiondays = $args['deletiondays'];
 
     // TODO: delete depending on the number of days not all the table like now
     if (!DBUtil::executeSQL('Truncate table ' . System::getVar('prefix') . '_IWstats')) {
-        return LogUtil::registerError($this->__('Error! Sorry! Deletion attempt failed.'));
+        return LogUtil::registerError(__('Error! Sorry! Deletion attempt failed.', $dom));
     }
 
     // Return the id of the newly created item to the calling process
@@ -19,9 +22,12 @@ function IWstats_adminapi_reset($args) {
 
 // skipped value to 1 for IP
 function IWstats_adminapi_deleteIp($args) {
+    
+    $dom = ZLanguage::getModuleDomain('IWstats');
+    
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_DELETE)) {
-        return LogUtil::registerError($this->__('Sorry! No authorization to access this module.'));
+        return LogUtil::registerError(__('Sorry! No authorization to access this module.', $dom));
     }
     $table = pnDBGetTables();
     $where = "";
@@ -30,16 +36,18 @@ function IWstats_adminapi_deleteIp($args) {
     $items = array('skipped' => 1);
 
     if (!DBUtil::updateObject($items, 'IWstats', $where)) {
-        return LogUtil::registerError($this->__('Error! Sorry! Deletion attempt failed.'));
+        return LogUtil::registerError(__('Error! Sorry! Deletion attempt failed.', $dom));
     }
 
     return true;
 }
 
 function IWstats_adminapi_skipModules($args) {
+    $dom = ZLanguage::getModuleDomain('IWstats');
+    
     // Security check
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_EDIT)) {
-        return LogUtil::registerError($this->__('Sorry! No authorization to access this module.'));
+        return LogUtil::registerError(__('Sorry! No authorization to access this module.', $dom));
     }
 
     $table = pnDBGetTables();
@@ -62,6 +70,9 @@ function IWstats_adminapi_skipModules($args) {
 }
 
 function IWstats_adminapi_summary($args) {
+    
+    $dom = ZLanguage::getModuleDomain('IWstats');
+    
     // get the last record in summary table
     $table = pnDBGetTables();
     $c = $table['IWstats_summary_column'];
@@ -73,7 +84,7 @@ function IWstats_adminapi_summary($args) {
         $last = DBUtil::selectObjectArray('IWstats_summary', '', $orderby, -1, 1);
 
         if ($last === false) {
-            return LogUtil::registerError(__('Error! Could not load data.'));
+            return LogUtil::registerError(__('Error! Could not load data.', $dom));
         }
     } else {
         $last[0]['datetime'] = $args['last'];

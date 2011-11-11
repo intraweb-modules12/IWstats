@@ -1,6 +1,9 @@
 <?php
 
 function IWstats_userapi_collect($args) {
+    
+    $dom = ZLanguage::getModuleDomain('IWstats');
+    
     // prepare data
     $uid = (pnUserLoggedIn()) ? pnUserGetVar('uid') : 0;
 
@@ -62,6 +65,9 @@ function IWstats_userapi_collect($args) {
 }
 
 function IWstats_userapi_getAllRecords($args) {
+    
+    $dom = ZLanguage::getModuleDomain('IWstats');
+    
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
         return LogUtil::registerPermissionError();
     }
@@ -123,7 +129,7 @@ function IWstats_userapi_getAllRecords($args) {
     // Check for an error with the database code, and if so set an appropriate
     // error message and return
     if ($items === false) {
-        return LogUtil::registerError(__('No s\'han pogut carregar els registres.'));
+        return LogUtil::registerError(__('No s\'han pogut carregar els registres.', $dom));
     }
 
     // Return the items
@@ -201,6 +207,7 @@ function IWstats_userapi_ip_in_range($args) {
 }
 
 function IWstats_userapi_getAllSummary($args) {
+    $dom = ZLanguage::getModuleDomain('IWstats');
     if (!SecurityUtil::checkPermission('IWstats::', '::', ACCESS_ADMIN)) {
         return LogUtil::registerPermissionError();
     }
@@ -210,29 +217,6 @@ function IWstats_userapi_getAllSummary($args) {
     $table = pnDBGetTables();
     $where = "";
     $c = $table['IWstats_summary_column'];
-    /*
-      if (isset($args['moduleId']) && $args['moduleId'] > 0) {
-      $and = ($where != '') ? ' AND ' : '';
-      $where .= $and . "$c[moduleid] = $args[moduleId]";
-      }
-
-
-
-      if (isset($args['ip']) && $args['ip'] != null) {
-      $and = ($where != '') ? ' AND ' : '';
-      $where .= $and . "$c[ip] = '$args[ip]'";
-      }
-
-      if (isset($args['registered']) && $args['registered'] == 1) {
-      $and = ($where != '') ? ' AND ' : '';
-      $where .= $and . "$c[uid] > 0";
-      }
-
-      $and = ($where == '') ? '' : ' AND';
-      if (!isset($args['all']) || $args['all'] != 1) {
-      $where .= "$and $c[isadmin] = 0 AND $c[skipped] = 0 AND $c[skippedModule] = 0";
-      }
-     */
 
     $from = mktime(0, 0, 0, substr($args['fromDate'], 3, 2), substr($args['fromDate'], 0, 2), substr($args['fromDate'], 6, 4));
     $to = mktime(23, 59, 59, substr($args['toDate'], 3, 2), substr($args['toDate'], 0, 2), substr($args['toDate'], 6, 4));
@@ -252,7 +236,7 @@ function IWstats_userapi_getAllSummary($args) {
     // Check for an error with the database code, and if so set an appropriate
     // error message and return
     if ($items === false) {
-        return LogUtil::registerError(__('No s\'han pogut carregar els registres.'));
+        return LogUtil::registerError(__('No s\'han pogut carregar els registres.', $dom));
     }
 
     // Return the items
