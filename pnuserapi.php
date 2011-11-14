@@ -129,7 +129,7 @@ function IWstats_userapi_getAllRecords($args) {
     // Check for an error with the database code, and if so set an appropriate
     // error message and return
     if ($items === false) {
-        return LogUtil::registerError(__('No s\'han pogut carregar els registres.', $dom));
+        return LogUtil::registerError(__('Error! Load attempt failed.', $dom));
     }
 
     // Return the items
@@ -236,7 +236,7 @@ function IWstats_userapi_getAllSummary($args) {
     // Check for an error with the database code, and if so set an appropriate
     // error message and return
     if ($items === false) {
-        return LogUtil::registerError(__('No s\'han pogut carregar els registres.', $dom));
+        return LogUtil::registerError(__('Error! Load attempt failed.', $dom));
     }
 
     // Return the items
